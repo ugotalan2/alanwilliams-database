@@ -1,10 +1,20 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+
+if [[ -f "${PROJECT_DIR}/.env" ]]; then
+    set -a
+    source "${PROJECT_DIR}/.env"
+    set +a
+fi
+
+POSTGRES_CONTAINER="${POSTGRES_CONTAINER:-alanwilliams-postgres}"
+POSTGRES_USER="${POSTGRES_USER:-postgres_admin}"
+
 BACKUP_FILE="${1:-}"
 TARGET_DATABASE="${2:-}"
-POSTGRES_CONTAINER="${POSTGRES_CONTAINER:-alanwilliams-postgres}"
-POSTGRES_USER="${POSTGRES_USER:-alanwilliams}"
 
 if [[ -z "${BACKUP_FILE}" || -z "${TARGET_DATABASE}" ]]; then
   echo "Usage: $0 <backup_file> <target_database>"

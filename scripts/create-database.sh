@@ -1,9 +1,19 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-DATABASE_NAME="${1:-}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+
+if [[ -f "${PROJECT_DIR}/.env" ]]; then
+    set -a
+    source "${PROJECT_DIR}/.env"
+    set +a
+fi
+
 POSTGRES_CONTAINER="${POSTGRES_CONTAINER:-alanwilliams-postgres}"
-POSTGRES_USER="${POSTGRES_USER:-alanwilliams}"
+POSTGRES_USER="${POSTGRES_USER:-postgres_admin}"
+
+DATABASE_NAME="${1:-}"
 
 if [[ -z "${DATABASE_NAME}" ]]; then
   echo "Usage: $0 <database_name>"
