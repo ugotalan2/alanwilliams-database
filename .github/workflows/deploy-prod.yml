@@ -1,0 +1,57 @@
+name: Deploy Database
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: [self-hosted, Linux, X64]
+
+    steps:
+      - name: Update database repository
+        run: |
+          cd /opt/alanwilliams/database
+
+          git fetch origin
+          git reset --hard origin/main
+
+      - name: Validate production configuration
+        run: |
+          cd /opt/alanwilliams/database
+
+          docker compose \
+            --env-file .env \
+            -f docker-compose.yml \
+            -f docker-compose-prod.yml \
+            config > /dev/null
+
+      - name: Deploy shared PostgreSQL
+        run: |
+          cd /opt/alanwilliams/database
+
+          docker compose \
+            --env-file .env \
+            -f docker-compose.yml \
+            -f docker-compose-prod.yml \
+            -p database \
+            up -d
+
+      - name: Verify PostgreSQL health
+        run: |
+          for i in {1..30}; do
+            STATUS="$(docker inspect \
+              --format='{{.State.Health.Status}}' \
+              alanwilliams-postgres 2>/dev/null || true)"
+
+            if [ "$STATUS" = "healthy" ]; then
+              echo "PostgreSQL is healthy."
+              exit 0
+            fi
+
+            sleep 2
+          done
+
+          docker logs alanwilliams-postgres --tail 100
+          exit 1
