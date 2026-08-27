@@ -1,0 +1,92 @@
+name: CI Tests
+
+on:
+  pull_request:
+    branches:
+      - dev
+      - main
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v5
+
+      - name: Make scripts executable
+        run: chmod +x scripts/*.sh
+
+      - name: Validate shell scripts
+        run: |
+          bash -n scripts/create-database.sh
+          bash -n scripts/list-databases.sh
+          bash -n scripts/backup.sh
+          bash -n scripts/restore.sh
+
+      - name: Create CI environment
+        run: |
+          cat > .env <<EOF
+          POSTGRES_CONTAINER=alanwilliams-postgres
+          POSTGRES_USER=postgres_admin
+          POSTGRES_PASSWORD=ci-test-password
+          POSTGRES_HOST_PORT=5432
+          EOF
+
+      - name: Validate Docker Compose
+        run: docker compose config
+
+      - name: Start PostgreSQL
+        run: docker compose up -d
+
+      - name: Wait for PostgreSQL
+        run: |
+          for i in {1..30}; do
+            if docker exec alanwilliams-postgres \
+              pg_isready -U postgres_admin -d postgres; then
+              exit 0
+            fi
+
+            sleep 2
+          done
+
+          docker logs alanwilliams-postgres
+          exit 1
+
+      - name: Test database creation
+        run: |
+          ./scripts/create-database.sh ci_test
+          ./scripts/list-databases.sh
+
+      - name: Test backup
+        run: |
+          BACKUP_DATABASES="ci_test" \
+          ./scripts/backup.sh
+
+          ls -lh backups/
+
+      - name: Test restore
+        run: |
+          BACKUP_FILE="$(find backups -name 'ci_test-*.dump' | head -n 1)"
+
+          ./scripts/restore.sh \
+            "$BACKUP_FILE" \
+            ci_restore
+
+      - name: Verify restored database
+        run: |
+          docker exec alanwilliams-postgres \
+            psql \
+              -U postgres_admin \
+              -d postgres \
+              -tAc \
+              "SELECT datname FROM pg_database WHERE datname='ci_restore'" \
+            | grep -q ci_restore
+
+      - name: Show PostgreSQL logs on failure
+        if: failure()
+        run: docker logs alanwilliams-postgres
+
+      - name: Clean up
+        if: always()
+        run: docker compose down -v
