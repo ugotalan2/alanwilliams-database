@@ -9,14 +9,16 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: postgres
 
-    ports:
-      - "${POSTGRES_HOST_PORT:-5432}:5432"
-
     volumes:
-      - alanwilliams-postgres-data:/var/lib/postgresql/data
+      - /opt/alanwilliams/postgres/data:/var/lib/postgresql/data
+      - /opt/alanwilliams/postgres/init:/docker-entrypoint-initdb.d:ro
 
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d postgres"]
+      test: 
+        [
+          "CMD-SHELL", 
+          "pg_isready -U ${POSTGRES_USER} -d postgres"
+        ]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -26,10 +28,6 @@ services:
         aliases:
           - postgres
 
-volumes:
-  alanwilliams-postgres-data:
-    name: alanwilliams-postgres-data
-
 networks:
   alanwilliams-backend:
-    name: alanwilliams-backend
+    external: true
