@@ -24,7 +24,7 @@ jobs:
           docker compose \
             --env-file .env \
             -f docker-compose.yml \
-            -f docker-compose-prod.yml \
+            -f docker-compose.prod.yml \
             config > /dev/null
 
       - name: Deploy shared PostgreSQL
@@ -34,7 +34,7 @@ jobs:
           docker compose \
             --env-file .env \
             -f docker-compose.yml \
-            -f docker-compose-prod.yml \
+            -f docker-compose.prod.yml \
             -p database \
             up -d
 
