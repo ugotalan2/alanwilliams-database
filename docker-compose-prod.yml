@@ -1,0 +1,5 @@
+services:
+  postgres:
+    volumes:
+      - /opt/alanwilliams/postgres/data:/var/lib/postgresql/data
+      - /opt/alanwilliams/postgres/init:/docker-entrypoint-initdb.d:ro
